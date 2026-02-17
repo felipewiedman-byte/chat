@@ -50,7 +50,7 @@ body {
   background: rgba(0,0,0,0.85);
   border-radius: 8px;
   border: 1px solid rgba(255,255,255,0.15);
-  margin-bottom: 0;
+  margin-bottom: 10px;
 }
 
 .stats-section { display: flex; flex-direction: column; gap: 2px; }
@@ -98,10 +98,11 @@ body {
 
 #events-container {
   position: absolute;
-  bottom: 520px;
+  bottom: 620px;  /* Posicionado encima del chat */
   left: 20px;
   width: 380px;
   pointer-events: none;
+  z-index: 1000000;
 }
 
 .event-window {
@@ -114,6 +115,7 @@ body {
   margin-bottom:10px;
   position:relative;
   animation: slideInDown 0.5s cubic-bezier(0.21,0.61,0.35,1);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.5);
 }
 
 @keyframes slideInDown {
@@ -184,11 +186,12 @@ body {
 (function() {
   const TXT_URL = 'https://raw.githubusercontent.com/felipewiedman-byte/textos_del_chat/refs/heads/main/textos_del_chat.txt';
   
-  let mensajesChat = []; // Array con todos los mensajes del TXT
+  let mensajesChat = [];
   let eventos = [];
   let emojis = ['❤️', '🔥', '🎉', '✨', '⚡', '🌟'];
-  let indiceMensaje = 0; // Índice para mostrar mensajes en orden
-  let ultimosMensajesVistos = new Set(); // Para controlar duplicados al recargar TXT
+  let indiceMensaje = 0;
+  let indiceEvento = 0;
+  let ultimosMensajesVistos = new Set();
   
   // 🔴 TODOS LOS VALORES INICIALES
   let conectadosActual = 847;
@@ -211,18 +214,17 @@ body {
     return num > 999 ? (num/1000).toFixed(1) + 'K' : num;
   }
   
-  // Función para cargar el TXT completo y actualizar la lista de mensajes
-  function actualizarListaMensajes() {
+  // Función para cargar el TXT completo
+  function cargarTXT() {
     return fetch(TXT_URL + '?t=' + Date.now())
       .then(r => r.ok ? r.text() : Promise.reject('Error al cargar TXT'))
       .then(data => {
         const lineas = data.split('\n');
         let seccionActual = '';
-        let nuevosMensajesEncontrados = [];
-        let nuevosEventosEncontrados = [];
+        let nuevosMensajes = [];
+        let nuevosEventos = [];
         let mensajesActualizados = [];
         
-        // PROCESAR LÍNEA POR LÍNEA
         lineas.forEach(linea => {
           linea = linea.trim();
           if (!linea) return;
@@ -245,19 +247,16 @@ body {
           if (seccionActual === 'conversaciones') {
             const match = linea.match(/^\[([^\]]+)\]\s*(.+)$/);
             if (match) {
-              const nuevoMensaje = {
+              const msg = {
                 user: match[1].trim(),
                 texto: match[2].trim()
               };
-              mensajesActualizados.push(nuevoMensaje);
+              mensajesActualizados.push(msg);
               
-              // Generar ID único para este mensaje
-              const idMensaje = match[1].trim() + '|' + match[2].trim();
-              
-              // Si es un mensaje que no hemos visto antes, lo marcamos como nuevo
-              if (!ultimosMensajesVistos.has(idMensaje)) {
-                ultimosMensajesVistos.add(idMensaje);
-                nuevosMensajesEncontrados.push(nuevoMensaje);
+              const id = match[1].trim() + '|' + match[2].trim();
+              if (!ultimosMensajesVistos.has(id)) {
+                ultimosMensajesVistos.add(id);
+                nuevosMensajes.push(msg);
                 mensajesTotal++;
               }
             }
@@ -265,7 +264,7 @@ body {
           else if (seccionActual === 'eventos' && linea.startsWith('!')) {
             if (!ultimosMensajesVistos.has('evento|' + linea)) {
               ultimosMensajesVistos.add('evento|' + linea);
-              nuevosEventosEncontrados.push(linea);
+              nuevosEventos.push(linea);
             }
           }
           else if (seccionActual === 'emojis' && linea.startsWith('#emojis')) {
@@ -274,64 +273,47 @@ body {
           }
         });
         
-        // Actualizar la lista completa de mensajes
         mensajesChat = mensajesActualizados;
-        
-        // Actualizar contador de mensajes totales
         document.getElementById('total-messages').innerText = formatearNumero(mensajesTotal);
         
-        // Mostrar eventos nuevos si hay
-        if (nuevosEventosEncontrados.length > 0) {
-          mostrarEvento(nuevosEventosEncontrados[0]);
+        // Mostrar eventos NUEVOS
+        if (nuevosEventos.length > 0) {
+          console.log('Mostrando evento nuevo:', nuevosEventos[0]);
+          mostrarEvento(nuevosEventos[0]);
         }
         
-        // Limpiar conjunto de IDs si crece demasiado
+        // Limpiar conjunto si es necesario
         if (ultimosMensajesVistos.size > 1000) {
-          const idsArray = Array.from(ultimosMensajesVistos);
-          ultimosMensajesVistos = new Set(idsArray.slice(-500));
+          const ids = Array.from(ultimosMensajesVistos);
+          ultimosMensajesVistos = new Set(ids.slice(-500));
         }
         
-        console.log(`Chat actualizado: ${mensajesChat.length} mensajes totales, ${nuevosMensajesEncontrados.length} nuevos`);
-        
+        console.log(`Cargados ${mensajesChat.length} mensajes totales, ${nuevosMensajes.length} nuevos`);
         return mensajesChat;
       })
       .catch(error => {
-        console.error('Error al cargar TXT:', error);
+        console.error('Error:', error);
         return [];
       });
   }
   
-  // Función para mostrar el siguiente mensaje en la cola
-  function mostrarSiguienteMensaje() {
-    if (mensajesChat.length > 0) {
-      // Obtener el mensaje actual según el índice
-      const msg = mensajesChat[indiceMensaje % mensajesChat.length];
-      
-      // Mostrar el mensaje
-      const platform = platforms[Math.floor(Math.random() * platforms.length)];
-      
-      messageContainer.insertAdjacentHTML('beforeend', 
-        '<div class="chat-card ' + platform + '">' +
-        '<div style="width:28px;height:28px;border-radius:4px;background:' + platformColors[platform] + ';display:flex;align-items:center;justify-content:center;font-size:16px;">' + platformCode[platform] + '</div>' +
-        '<div style="flex:1;"><span style="font-weight:800;">' + msg.user + '</span> <span style="color:rgba(255,255,255,0.8);">' + msg.texto + '</span></div>' +
-        '</div>'
-      );
-      
-      // Mantener solo los últimos 15 mensajes
-      while (messageContainer.children.length > 15) {
-        messageContainer.removeChild(messageContainer.children[0]);
-      }
-      
-      // Scroll al último mensaje
-      messageContainer.scrollTop = messageContainer.scrollHeight;
-      
-      // Incrementar índice para el próximo mensaje
-      indiceMensaje++;
-    }
- 
- function mostrarEvento(evento) {
-    if (!evento) return;
+  function mostrarMensaje(msg) {
+    const platform = platforms[Math.floor(Math.random() * platforms.length)];
     
+    messageContainer.insertAdjacentHTML('beforeend', 
+      '<div class="chat-card ' + platform + '">' +
+      '<div style="width:28px;height:28px;border-radius:4px;background:' + platformColors[platform] + ';display:flex;align-items:center;justify-content:center;font-size:16px;">' + platformCode[platform] + '</div>' +
+      '<div style="flex:1;"><span style="font-weight:800;">' + msg.user + '</span> <span style="color:rgba(255,255,255,0.8);">' + msg.texto + '</span></div>' +
+      '</div>'
+    );
+    
+    while (messageContainer.children.length > 15) {
+      messageContainer.removeChild(messageContainer.children[0]);
+    }
+    messageContainer.scrollTop = messageContainer.scrollHeight;
+  }
+  
+  function mostrarEvento(evento) {
     const parts = evento.substring(1).split(' ');
     const tipo = parts[0];
     let user = parts.length > 1 ? parts[1] : 'Alguien';
@@ -340,44 +322,26 @@ body {
     user = user.replace('@', '');
     
     let titulo = '🔔 EVENTO';
-    let icono = '🔔'; // <--- ICONO POR DEFECTO
+    let icono = '🔔';
     
-    if (tipo === 'subscription') { 
-        titulo = '🎁 NUEVA SUSCRIPCIÓN'; 
-        icono = '🎁'; // <--- ICONO CORRECTO
-    }
-    else if (tipo === 'gift') { 
-        titulo = '🎁 SUSCRIPCIÓN REGALADA'; 
-        icono = '🎁'; // <--- ICONO CORRECTO
-    }
-    else if (tipo === 'donation') { 
-        titulo = '💰 DONACIÓN'; 
-        icono = '💰'; // <--- ICONO CORRECTO
-    }
-    else if (tipo === 'raid') { 
-        titulo = '👥 RAID'; 
-        icono = '👥'; // <--- ICONO CORRECTO
-    }
-    else if (tipo === 'bit') { 
-        titulo = '💎 BITS'; 
-        icono = '💎'; // <--- ICONO CORRECTO
-    }
-    else if (tipo === 'host') { 
-        titulo = '🎬 HOST'; 
-        icono = '🎬'; // <--- ICONO CORRECTO
-    }
+    if (tipo === 'subscription') { titulo = '🎁 NUEVA SUSCRIPCIÓN'; icono = '🎁'; }
+    else if (tipo === 'gift') { titulo = '🎁 SUSCRIPCIÓN REGALADA'; icono = '🎁'; }
+    else if (tipo === 'donation') { titulo = '💰 DONACIÓN'; icono = '💰'; }
+    else if (tipo === 'raid') { titulo = '👥 RAID'; icono = '👥'; }
+    else if (tipo === 'bit') { titulo = '💎 BITS'; icono = '💎'; }
+    else if (tipo === 'host') { titulo = '🎬 HOST'; icono = '🎬'; }
     
     const platform = platforms[Math.floor(Math.random() * platforms.length)];
-    const letraUser = user ? user.charAt(0).toUpperCase() : '?'; // <--- SEGURO
     
+    // Mostrar el evento
     eventsContainer.innerHTML = 
       '<div class="event-window">' +
       '<div class="event-header">' +
-      '<div class="event-icon" style="background:' + platformColors[platform] + ';">' + icono + '</div>' + // <--- AHORA USA ICONO
+      '<div class="event-icon" style="background:' + platformColors[platform] + ';">' + icono + '</div>' +
       '<span class="event-title">' + titulo + '</span>' +
       '</div>' +
       '<div class="event-body">' +
-      '<div class="event-user-avatar" style="background:' + platformColors[platform] + ';">' + letraUser + '</div>' +
+      '<div class="event-user-avatar" style="background:' + platformColors[platform] + ';">' + user.charAt(0).toUpperCase() + '</div>' +
       '<div class="event-details">' +
       '<div class="event-user-name">' + user + '</div>' +
       '<div class="event-description">' + descripcion + '</div>' +
@@ -386,12 +350,13 @@ body {
       '<div class="event-timer"><div class="event-progress"></div></div>' +
       '</div>';
     
+    // Ocultar después de 5 segundos
     setTimeout(() => { 
-        if (eventsContainer.children[0]) {
-            eventsContainer.innerHTML = ''; 
-        }
+      if (eventsContainer.children[0]) {
+        eventsContainer.innerHTML = ''; 
+      }
     }, 5000);
-}
+  }
   
   // === CONTADORES DINÁMICOS ===
   function moverContador(valorActual, elementoId) {
@@ -420,36 +385,48 @@ body {
   
   // === INICIALIZACIÓN ===
   
-  // Carga inicial del TXT
-  actualizarListaMensajes().then(() => {
-    // Mostrar los últimos 5 mensajes al inicio
+  // Carga inicial
+  cargarTXT().then(() => {
+    // Mostrar últimos 5 mensajes
     const inicio = Math.max(0, mensajesChat.length - 5);
+    messageContainer.innerHTML = '';
     for (let i = inicio; i < mensajesChat.length; i++) {
       if (mensajesChat[i]) {
-        const platform = platforms[Math.floor(Math.random() * platforms.length)];
-        messageContainer.insertAdjacentHTML('beforeend', 
-          '<div class="chat-card ' + platform + '">' +
-          '<div style="width:28px;height:28px;border-radius:4px;background:' + platformColors[platform] + ';display:flex;align-items:center;justify-content:center;font-size:16px;">' + platformCode[platform] + '</div>' +
-          '<div style="flex:1;"><span style="font-weight:800;">' + mensajesChat[i].user + '</span> <span style="color:rgba(255,255,255,0.8);">' + mensajesChat[i].texto + '</span></div>' +
-          '</div>'
-        );
+        mostrarMensaje(mensajesChat[i]);
       }
     }
-    // Establecer el índice para continuar desde el siguiente mensaje
     indiceMensaje = mensajesChat.length;
   });
   
-  // Intervalo para mostrar mensajes CADA 4 SEGUNDOS (flujo constante)
+  // Mostrar mensajes cada 4 segundos
   setInterval(() => {
-    mostrarSiguienteMensaje();
+    if (mensajesChat.length > 0) {
+      const msg = mensajesChat[indiceMensaje % mensajesChat.length];
+      mostrarMensaje(msg);
+      indiceMensaje++;
+    }
   }, 4000);
   
-  // Intervalo para recargar el TXT CADA MINUTO (detectar nuevos mensajes)
+  // Recargar TXT cada minuto
   setInterval(() => {
-    actualizarListaMensajes();
+    console.log('Recargando TXT...');
+    cargarTXT();
   }, 60000);
   
-  // Emojis flotantes (cada 4 segundos)
+  // Eventos de prueba cada 30 segundos (si no hay eventos en el TXT)
+  setInterval(() => {
+    if (eventos.length === 0) {
+      // Evento de demostración para probar que se ve
+      const eventosDemo = [
+        '!subscription @Streamer',
+        '!donation @Usuario 10€',
+        '!raid @Comunidad 50 espectadores'
+      ];
+      mostrarEvento(eventosDemo[Math.floor(Math.random() * eventosDemo.length)]);
+    }
+  }, 30000);
+  
+  // Emojis flotantes
   setInterval(() => {
     if (Math.random() > 0.6 && emojis.length > 0) {
       const e = document.createElement('div');
@@ -462,7 +439,7 @@ body {
     }
   }, 4000);
   
-  // Iniciar contadores dinámicos
+  // Iniciar contadores
   moverContador(conectadosActual, 'connected-count');
   moverContador(likesActual, 'live-likes');
   moverContador(activosActual, 'typing-count');
@@ -472,4 +449,3 @@ body {
 
 </body>
 </html>
-
