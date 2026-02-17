@@ -157,17 +157,17 @@ body {
   <div class="live-stats-container">
     <div class="stats-section">
       <div class="stats-label">Conectados</div>
-      <div class="stats-value"><span class="stats-icon">👥</span><span id="connected-count">1,247</span></div>
+      <div class="stats-value"><span class="stats-icon">👥</span><span id="connected-count">847</span></div>
     </div>
     <div class="stats-divider"></div>
     <div class="stats-section">
       <div class="stats-label">Likes</div>
-      <div class="stats-value"><span class="stats-icon">❤️</span><span id="live-likes">8.7K</span></div>
+      <div class="stats-value"><span class="stats-icon">❤️</span><span id="live-likes">847</span></div>
     </div>
     <div class="stats-divider"></div>
     <div class="stats-section">
       <div class="stats-label">Mensajes</div>
-      <div class="stats-value"><span class="stats-icon">💬</span><span id="total-messages">18,492</span></div>
+      <div class="stats-value"><span class="stats-icon">💬</span><span id="total-messages">847</span></div>
     </div>
     <div class="stats-divider"></div>
     <div class="stats-section">
@@ -180,7 +180,7 @@ body {
 </div>
 
 <script>
-// === LECTOR EXACTO DEL TXT - CONECTADOS VARIABLES (60-2000) ===
+// === LECTOR EXACTO DEL TXT - CONTADORES VARIABLES DE VERDAD ===
 (function() {
   const TXT_URL = 'https://raw.githubusercontent.com/felipewiedman-byte/textos_del_chat/refs/heads/main/textos_del_chat.txt';
   
@@ -189,7 +189,12 @@ body {
   let emojis = ['❤️', '🔥', '🎉', '✨', '⚡', '🌟'];
   let indiceMensaje = 0;
   let indiceEvento = 0;
-  let conectadosActual = 847; // Valor inicial en el rango
+  
+  // 🔴 TODOS LOS VALORES INICIALES
+  let conectadosActual = 847;
+  let likesActual = 723;
+  let mensajesTotal = 956;
+  let activosActual = 12;
   
   const messageContainer = document.getElementById('message-container');
   const eventsContainer = document.getElementById('events-container');
@@ -200,15 +205,10 @@ body {
   
   messageContainer.innerHTML = '<div class="chat-card youtube"><div style="width:28px;height:28px;border-radius:4px;background:#FF0000;display:flex;align-items:center;justify-content:center;">📡</div><div><span style="font-weight:800;">Sistema</span> <span>Cargando...</span></div></div>';
   
-  // Actualizar conectados cada 3-7 segundos (simula entradas/salidas)
-  setInterval(() => {
-    // Variación aleatoria entre -23 y +37 personas
-    const variacion = Math.floor(Math.random() * 60) - 23; // Entre -23 y +37
-    conectadosActual = Math.min(2000, Math.max(60, conectadosActual + variacion));
-    
-    document.getElementById('connected-count').innerText = conectadosActual > 999 ? 
-      (conectadosActual/1000).toFixed(1) + 'K' : conectadosActual;
-  }, 3000 + Math.random() * 4000); // Entre 3 y 7 segundos
+  // 🔴 FUNCIÓN PARA FORMATEAR NÚMEROS
+  function formatearNumero(num) {
+    return num > 999 ? (num/1000).toFixed(1) + 'K' : num;
+  }
   
   fetch(TXT_URL + '?t=' + Date.now())
     .then(r => r.ok ? r.text() : Promise.reject('Error'))
@@ -260,7 +260,9 @@ body {
       }
       indiceMensaje = mensajesChat.length;
       
-      document.getElementById('total-messages').innerText = mensajesChat.length;
+      // 🔴 ACTUALIZAR TOTAL DE MENSAJES INICIAL
+      mensajesTotal = mensajesChat.length;
+      document.getElementById('total-messages').innerText = formatearNumero(mensajesTotal);
       
       // Mostrar eventos si existen
       if (eventos.length > 0) {
@@ -271,13 +273,40 @@ body {
         }, 10000);
       }
       
-      // Mensajes cíclicos cada 4 segundos
+      // 🔴 INICIAR CONTADORES VARIABLES AHORA SÍ (DESPUÉS DEL FETCH)
+      
+      // Conectados cada 3-7 segundos
+      setInterval(() => {
+        const variacion = Math.floor(Math.random() * 60) - 23;
+        conectadosActual = Math.min(1200, Math.max(60, conectadosActual + variacion));
+        document.getElementById('connected-count').innerText = formatearNumero(conectadosActual);
+      }, 3000 + Math.random() * 4000);
+      
+      // Likes cada 4-8 segundos
+      setInterval(() => {
+        const variacion = Math.floor(Math.random() * 60) - 23;
+        likesActual = Math.min(1200, Math.max(60, likesActual + variacion));
+        document.getElementById('live-likes').innerText = formatearNumero(likesActual);
+      }, 4000 + Math.random() * 4000);
+      
+      // Activos cada 5-9 segundos
+      setInterval(() => {
+        const variacion = Math.floor(Math.random() * 60) - 23;
+        activosActual = Math.min(1200, Math.max(60, activosActual + variacion));
+        document.getElementById('typing-count').innerText = formatearNumero(activosActual);
+      }, 5000 + Math.random() * 4000);
+      
+      // Mensajes cada 4 segundos
       setInterval(() => {
         if (mensajesChat.length > 0) {
           const msg = mensajesChat[indiceMensaje % mensajesChat.length];
           mostrarMensaje(msg);
           indiceMensaje++;
-          document.getElementById('total-messages').innerText = mensajesChat.length + indiceMensaje;
+          
+          // Los mensajes también varían
+          const variacion = Math.floor(Math.random() * 10) - 3;
+          mensajesTotal = Math.min(1200, Math.max(60, mensajesTotal + variacion));
+          document.getElementById('total-messages').innerText = formatearNumero(mensajesTotal);
         }
       }, 4000);
       
@@ -343,13 +372,6 @@ body {
     setTimeout(() => { if (eventsContainer.children[0]) eventsContainer.innerHTML = ''; }, 5000);
   }
   
-  // Likes y activos también variables
-  setInterval(() => {
-    let l = 5000 + Math.floor(Math.random() * 4000);
-    let t = 8 + Math.floor(Math.random() * 25);
-    document.getElementById('live-likes').innerText = l > 999 ? (l/1000).toFixed(1) + 'K' : l;
-    document.getElementById('typing-count').innerText = t;
-  }, 6000);
 })();
 </script>
 
