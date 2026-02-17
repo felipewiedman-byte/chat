@@ -328,9 +328,10 @@ body {
       // Incrementar índice para el próximo mensaje
       indiceMensaje++;
     }
-  }
-  
-  function mostrarEvento(evento) {
+ 
+ function mostrarEvento(evento) {
+    if (!evento) return;
+    
     const parts = evento.substring(1).split(' ');
     const tipo = parts[0];
     let user = parts.length > 1 ? parts[1] : 'Alguien';
@@ -339,24 +340,58 @@ body {
     user = user.replace('@', '');
     
     let titulo = '🔔 EVENTO';
-    if (tipo === 'subscription') titulo = '🎁 NUEVA SUSCRIPCIÓN';
-    else if (tipo === 'gift') titulo = '🎁 SUSCRIPCIÓN REGALADA';
-    else if (tipo === 'donation') titulo = '💰 DONACIÓN';
-    else if (tipo === 'raid') titulo = '👥 RAID';
-    else if (tipo === 'bit') titulo = '💎 BITS';
-    else if (tipo === 'host') titulo = '🎬 HOST';
+    let icono = '🔔'; // <--- ICONO POR DEFECTO
+    
+    if (tipo === 'subscription') { 
+        titulo = '🎁 NUEVA SUSCRIPCIÓN'; 
+        icono = '🎁'; // <--- ICONO CORRECTO
+    }
+    else if (tipo === 'gift') { 
+        titulo = '🎁 SUSCRIPCIÓN REGALADA'; 
+        icono = '🎁'; // <--- ICONO CORRECTO
+    }
+    else if (tipo === 'donation') { 
+        titulo = '💰 DONACIÓN'; 
+        icono = '💰'; // <--- ICONO CORRECTO
+    }
+    else if (tipo === 'raid') { 
+        titulo = '👥 RAID'; 
+        icono = '👥'; // <--- ICONO CORRECTO
+    }
+    else if (tipo === 'bit') { 
+        titulo = '💎 BITS'; 
+        icono = '💎'; // <--- ICONO CORRECTO
+    }
+    else if (tipo === 'host') { 
+        titulo = '🎬 HOST'; 
+        icono = '🎬'; // <--- ICONO CORRECTO
+    }
     
     const platform = platforms[Math.floor(Math.random() * platforms.length)];
+    const letraUser = user ? user.charAt(0).toUpperCase() : '?'; // <--- SEGURO
     
     eventsContainer.innerHTML = 
       '<div class="event-window">' +
-      '<div class="event-header"><div class="event-icon" style="background:' + platformColors[platform] + ';">' + platformCode[platform] + '</div><span class="event-title">' + titulo + '</span></div>' +
-      '<div class="event-body"><div class="event-user-avatar" style="background:' + platformColors[platform] + ';">' + user.charAt(0) + '</div>' +
-      '<div class="event-details"><div class="event-user-name">' + user + '</div><div class="event-description">' + descripcion + '</div></div></div>' +
-      '<div class="event-timer"><div class="event-progress"></div></div></div>';
+      '<div class="event-header">' +
+      '<div class="event-icon" style="background:' + platformColors[platform] + ';">' + icono + '</div>' + // <--- AHORA USA ICONO
+      '<span class="event-title">' + titulo + '</span>' +
+      '</div>' +
+      '<div class="event-body">' +
+      '<div class="event-user-avatar" style="background:' + platformColors[platform] + ';">' + letraUser + '</div>' +
+      '<div class="event-details">' +
+      '<div class="event-user-name">' + user + '</div>' +
+      '<div class="event-description">' + descripcion + '</div>' +
+      '</div>' +
+      '</div>' +
+      '<div class="event-timer"><div class="event-progress"></div></div>' +
+      '</div>';
     
-    setTimeout(() => { if (eventsContainer.children[0]) eventsContainer.innerHTML = ''; }, 5000);
-  }
+    setTimeout(() => { 
+        if (eventsContainer.children[0]) {
+            eventsContainer.innerHTML = ''; 
+        }
+    }, 5000);
+}
   
   // === CONTADORES DINÁMICOS ===
   function moverContador(valorActual, elementoId) {
@@ -437,3 +472,4 @@ body {
 
 </body>
 </html>
+
