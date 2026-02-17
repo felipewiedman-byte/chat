@@ -275,26 +275,38 @@ body {
       
       // 🔴 INICIAR CONTADORES VARIABLES AHORA SÍ (DESPUÉS DEL FETCH)
       
-      // Conectados cada 3-7 segundos
-      setInterval(() => {
-        const variacion = Math.floor(Math.random() * 60) - 23;
-        conectadosActual = Math.min(1200, Math.max(60, conectadosActual + variacion));
-        document.getElementById('connected-count').innerText = formatearNumero(conectadosActual);
-      }, 3000 + Math.random() * 4000);
-      
-      // Likes cada 4-8 segundos
-      setInterval(() => {
-        const variacion = Math.floor(Math.random() * 60) - 23;
-        likesActual = Math.min(1200, Math.max(60, likesActual + variacion));
-        document.getElementById('live-likes').innerText = formatearNumero(likesActual);
-      }, 4000 + Math.random() * 4000);
-      
-      // Activos cada 5-9 segundos
-      setInterval(() => {
-        const variacion = Math.floor(Math.random() * 60) - 23;
-        activosActual = Math.min(1200, Math.max(60, activosActual + variacion));
-        document.getElementById('typing-count').innerText = formatearNumero(activosActual);
-      }, 5000 + Math.random() * 4000);
+      // === CONTADORES DINÁMICOS INFINITOS REALMENTE ALEATORIOS ===
+
+function moverContador(valorActual, elementoId) {
+  const variacion = Math.floor(Math.random() * 80) - 40; // sube o baja
+  valorActual += variacion;
+
+  // Limitar rango 60 - 1200
+  if (valorActual < 60) valorActual = 60;
+  if (valorActual > 1200) valorActual = 1200;
+
+  document.getElementById(elementoId).innerText = formatearNumero(valorActual);
+
+  // Próxima actualización aleatoria entre 2 y 6 segundos
+  setTimeout(() => {
+    if (elementoId === 'connected-count') {
+      conectadosActual = moverContador(valorActual, elementoId);
+    } 
+    else if (elementoId === 'live-likes') {
+      likesActual = moverContador(valorActual, elementoId);
+    } 
+    else if (elementoId === 'typing-count') {
+      activosActual = moverContador(valorActual, elementoId);
+    }
+  }, 2000 + Math.random() * 4000);
+
+  return valorActual;
+}
+
+// Iniciar movimiento infinito
+moverContador(conectadosActual, 'connected-count');
+moverContador(likesActual, 'live-likes');
+moverContador(activosActual, 'typing-count');
       
       // Mensajes cada 4 segundos
       setInterval(() => {
@@ -377,3 +389,4 @@ body {
 
 </body>
 </html>
+
