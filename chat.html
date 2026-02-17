@@ -162,12 +162,12 @@ body {
     <div class="stats-divider"></div>
     <div class="stats-section">
       <div class="stats-label">Likes</div>
-      <div class="stats-value"><span class="stats-icon">❤️</span><span id="live-likes">847</span></div>
+      <div class="stats-value"><span class="stats-icon">❤️</span><span id="live-likes">723</span></div>
     </div>
     <div class="stats-divider"></div>
     <div class="stats-section">
       <div class="stats-label">Mensajes</div>
-      <div class="stats-value"><span class="stats-icon">💬</span><span id="total-messages">847</span></div>
+      <div class="stats-value"><span class="stats-icon">💬</span><span id="total-messages">0</span></div>
     </div>
     <div class="stats-divider"></div>
     <div class="stats-section">
@@ -180,20 +180,20 @@ body {
 </div>
 
 <script>
-// === LECTOR EXACTO DEL TXT - CONTADORES VARIABLES DE VERDAD ===
+// === LECTOR EXACTO DEL TXT - ACTUALIZACIÓN CADA MINUTO CON FLUJO CONSTANTE ===
 (function() {
   const TXT_URL = 'https://raw.githubusercontent.com/felipewiedman-byte/textos_del_chat/refs/heads/main/textos_del_chat.txt';
   
-  let mensajesChat = [];
+  let mensajesChat = []; // Array con todos los mensajes del TXT
   let eventos = [];
   let emojis = ['❤️', '🔥', '🎉', '✨', '⚡', '🌟'];
-  let indiceMensaje = 0;
-  let indiceEvento = 0;
+  let indiceMensaje = 0; // Índice para mostrar mensajes en orden
+  let ultimosMensajesVistos = new Set(); // Para controlar duplicados al recargar TXT
   
   // 🔴 TODOS LOS VALORES INICIALES
   let conectadosActual = 847;
   let likesActual = 723;
-  let mensajesTotal = 956;
+  let mensajesTotal = 0;
   let activosActual = 12;
   
   const messageContainer = document.getElementById('message-container');
@@ -203,157 +203,131 @@ body {
   const platformColors = { youtube: '#FF0000', twitch: '#6441a5', kick: '#00c800' };
   const platformCode = { youtube: 'YT', twitch: 'TW', kick: 'KC' };
   
-  messageContainer.innerHTML = '<div class="chat-card youtube"><div style="width:28px;height:28px;border-radius:4px;background:#FF0000;display:flex;align-items:center;justify-content:center;">📡</div><div><span style="font-weight:800;">Sistema</span> <span>Cargando...</span></div></div>';
+  // Mensaje de carga inicial
+  messageContainer.innerHTML = '<div class="chat-card youtube"><div style="width:28px;height:28px;border-radius:4px;background:#FF0000;display:flex;align-items:center;justify-content:center;">📡</div><div><span style="font-weight:800;">Sistema</span> <span>Cargando chat...</span></div></div>';
   
   // 🔴 FUNCIÓN PARA FORMATEAR NÚMEROS
   function formatearNumero(num) {
     return num > 999 ? (num/1000).toFixed(1) + 'K' : num;
   }
   
-  fetch(TXT_URL + '?t=' + Date.now())
-    .then(r => r.ok ? r.text() : Promise.reject('Error'))
-    .then(data => {
-      const lineas = data.split('\n');
-      let seccionActual = '';
-      
-      lineas.forEach(linea => {
-        linea = linea.trim();
-        if (!linea) return;
+  // Función para cargar el TXT completo y actualizar la lista de mensajes
+  function actualizarListaMensajes() {
+    return fetch(TXT_URL + '?t=' + Date.now())
+      .then(r => r.ok ? r.text() : Promise.reject('Error al cargar TXT'))
+      .then(data => {
+        const lineas = data.split('\n');
+        let seccionActual = '';
+        let nuevosMensajesEncontrados = [];
+        let nuevosEventosEncontrados = [];
+        let mensajesActualizados = [];
         
-        if (linea.includes('=== CONVERSACIONES ===')) {
-          seccionActual = 'conversaciones';
-          return;
-        }
-        if (linea.includes('=== EVENTOS ===')) {
-          seccionActual = 'eventos';
-          return;
-        }
-        if (linea.includes('=== EMOTICONOS FLOTANTES ===')) {
-          seccionActual = 'emojis';
-          return;
-        }
-        
-        if (linea.startsWith('//')) return;
-        
-        if (seccionActual === 'conversaciones') {
-          const match = linea.match(/^\[([^\]]+)\]\s*(.+)$/);
-          if (match) {
-            mensajesChat.push({
-              user: match[1].trim(),
-              texto: match[2].trim()
-            });
-          }
-        }
-        else if (seccionActual === 'eventos' && linea.startsWith('!')) {
-          eventos.push(linea);
-        }
-        else if (seccionActual === 'emojis' && linea.startsWith('#emojis')) {
-          const nuevosEmojis = linea.replace('#emojis', '').trim().split(/\s+/);
-          if (nuevosEmojis.length > 0) emojis = nuevosEmojis;
-        }
-      });
-      
-      // Mostrar últimos 5 mensajes
-      messageContainer.innerHTML = '';
-      for (let i = Math.max(0, mensajesChat.length - 5); i < mensajesChat.length; i++) {
-        if (mensajesChat[i]) mostrarMensaje(mensajesChat[i]);
-      }
-      indiceMensaje = mensajesChat.length;
-      
-      // 🔴 ACTUALIZAR TOTAL DE MENSAJES INICIAL
-      mensajesTotal = mensajesChat.length;
-      document.getElementById('total-messages').innerText = formatearNumero(mensajesTotal);
-      
-      // Mostrar eventos si existen
-      if (eventos.length > 0) {
-        mostrarEvento(eventos[0]);
-        setInterval(() => {
-          indiceEvento++;
-          mostrarEvento(eventos[indiceEvento % eventos.length]);
-        }, 10000);
-      }
-      
-      // 🔴 INICIAR CONTADORES VARIABLES AHORA SÍ (DESPUÉS DEL FETCH)
-      
-      // === CONTADORES DINÁMICOS INFINITOS REALMENTE ALEATORIOS ===
-
-function moverContador(valorActual, elementoId) {
-  const variacion = Math.floor(Math.random() * 80) - 40; // sube o baja
-  valorActual += variacion;
-
-  // Limitar rango 60 - 1200
-  if (valorActual < 60) valorActual = 60;
-  if (valorActual > 1200) valorActual = 1200;
-
-  document.getElementById(elementoId).innerText = formatearNumero(valorActual);
-
-  // Próxima actualización aleatoria entre 2 y 6 segundos
-  setTimeout(() => {
-    if (elementoId === 'connected-count') {
-      conectadosActual = moverContador(valorActual, elementoId);
-    } 
-    else if (elementoId === 'live-likes') {
-      likesActual = moverContador(valorActual, elementoId);
-    } 
-    else if (elementoId === 'typing-count') {
-      activosActual = moverContador(valorActual, elementoId);
-    }
-  }, 2000 + Math.random() * 4000);
-
-  return valorActual;
-}
-
-// Iniciar movimiento infinito
-moverContador(conectadosActual, 'connected-count');
-moverContador(likesActual, 'live-likes');
-moverContador(activosActual, 'typing-count');
-      
-      // Mensajes cada 4 segundos
-      setInterval(() => {
-        if (mensajesChat.length > 0) {
-          const msg = mensajesChat[indiceMensaje % mensajesChat.length];
-          mostrarMensaje(msg);
-          indiceMensaje++;
+        // PROCESAR LÍNEA POR LÍNEA
+        lineas.forEach(linea => {
+          linea = linea.trim();
+          if (!linea) return;
           
-          // Los mensajes también varían
-          const variacion = Math.floor(Math.random() * 10) - 3;
-          mensajesTotal = Math.min(1200, Math.max(60, mensajesTotal + variacion));
-          document.getElementById('total-messages').innerText = formatearNumero(mensajesTotal);
+          if (linea.includes('=== CONVERSACIONES ===')) {
+            seccionActual = 'conversaciones';
+            return;
+          }
+          if (linea.includes('=== EVENTOS ===')) {
+            seccionActual = 'eventos';
+            return;
+          }
+          if (linea.includes('=== EMOTICONOS FLOTANTES ===')) {
+            seccionActual = 'emojis';
+            return;
+          }
+          
+          if (linea.startsWith('//')) return;
+          
+          if (seccionActual === 'conversaciones') {
+            const match = linea.match(/^\[([^\]]+)\]\s*(.+)$/);
+            if (match) {
+              const nuevoMensaje = {
+                user: match[1].trim(),
+                texto: match[2].trim()
+              };
+              mensajesActualizados.push(nuevoMensaje);
+              
+              // Generar ID único para este mensaje
+              const idMensaje = match[1].trim() + '|' + match[2].trim();
+              
+              // Si es un mensaje que no hemos visto antes, lo marcamos como nuevo
+              if (!ultimosMensajesVistos.has(idMensaje)) {
+                ultimosMensajesVistos.add(idMensaje);
+                nuevosMensajesEncontrados.push(nuevoMensaje);
+                mensajesTotal++;
+              }
+            }
+          }
+          else if (seccionActual === 'eventos' && linea.startsWith('!')) {
+            if (!ultimosMensajesVistos.has('evento|' + linea)) {
+              ultimosMensajesVistos.add('evento|' + linea);
+              nuevosEventosEncontrados.push(linea);
+            }
+          }
+          else if (seccionActual === 'emojis' && linea.startsWith('#emojis')) {
+            const nuevosEmojis = linea.replace('#emojis', '').trim().split(/\s+/);
+            if (nuevosEmojis.length > 0) emojis = nuevosEmojis;
+          }
+        });
+        
+        // Actualizar la lista completa de mensajes
+        mensajesChat = mensajesActualizados;
+        
+        // Actualizar contador de mensajes totales
+        document.getElementById('total-messages').innerText = formatearNumero(mensajesTotal);
+        
+        // Mostrar eventos nuevos si hay
+        if (nuevosEventosEncontrados.length > 0) {
+          mostrarEvento(nuevosEventosEncontrados[0]);
         }
-      }, 4000);
-      
-      // Emojis flotantes
-      setInterval(() => {
-        if (Math.random() > 0.6 && emojis.length > 0) {
-          const e = document.createElement('div');
-          e.className = 'floating-emoji';
-          e.innerText = emojis[Math.floor(Math.random() * emojis.length)];
-          e.style.left = Math.random() * 80 + 10 + '%';
-          e.style.bottom = '20px';
-          document.body.appendChild(e);
-          setTimeout(() => e.remove(), 3000);
+        
+        // Limpiar conjunto de IDs si crece demasiado
+        if (ultimosMensajesVistos.size > 1000) {
+          const idsArray = Array.from(ultimosMensajesVistos);
+          ultimosMensajesVistos = new Set(idsArray.slice(-500));
         }
-      }, 4000);
-    })
-    .catch(error => {
-      console.error('Error:', error);
-      messageContainer.innerHTML = '<div class="chat-card youtube"><div style="width:28px;height:28px;border-radius:4px;background:#FF0000;display:flex;align-items:center;justify-content:center;">⚠️</div><div><span style="font-weight:800;">Error</span> <span>No se pudo cargar el TXT</span></div></div>';
-    });
+        
+        console.log(`Chat actualizado: ${mensajesChat.length} mensajes totales, ${nuevosMensajesEncontrados.length} nuevos`);
+        
+        return mensajesChat;
+      })
+      .catch(error => {
+        console.error('Error al cargar TXT:', error);
+        return [];
+      });
+  }
   
-  function mostrarMensaje(msg) {
-    const platform = platforms[Math.floor(Math.random() * platforms.length)];
-    
-    messageContainer.insertAdjacentHTML('beforeend', 
-      '<div class="chat-card ' + platform + '">' +
-      '<div style="width:28px;height:28px;border-radius:4px;background:' + platformColors[platform] + ';display:flex;align-items:center;justify-content:center;font-size:16px;">' + platformCode[platform] + '</div>' +
-      '<div style="flex:1;"><span style="font-weight:800;">' + msg.user + '</span> <span style="color:rgba(255,255,255,0.8);">' + msg.texto + '</span></div>' +
-      '</div>'
-    );
-    
-    while (messageContainer.children.length > 15) {
-      messageContainer.removeChild(messageContainer.children[0]);
+  // Función para mostrar el siguiente mensaje en la cola
+  function mostrarSiguienteMensaje() {
+    if (mensajesChat.length > 0) {
+      // Obtener el mensaje actual según el índice
+      const msg = mensajesChat[indiceMensaje % mensajesChat.length];
+      
+      // Mostrar el mensaje
+      const platform = platforms[Math.floor(Math.random() * platforms.length)];
+      
+      messageContainer.insertAdjacentHTML('beforeend', 
+        '<div class="chat-card ' + platform + '">' +
+        '<div style="width:28px;height:28px;border-radius:4px;background:' + platformColors[platform] + ';display:flex;align-items:center;justify-content:center;font-size:16px;">' + platformCode[platform] + '</div>' +
+        '<div style="flex:1;"><span style="font-weight:800;">' + msg.user + '</span> <span style="color:rgba(255,255,255,0.8);">' + msg.texto + '</span></div>' +
+        '</div>'
+      );
+      
+      // Mantener solo los últimos 15 mensajes
+      while (messageContainer.children.length > 15) {
+        messageContainer.removeChild(messageContainer.children[0]);
+      }
+      
+      // Scroll al último mensaje
+      messageContainer.scrollTop = messageContainer.scrollHeight;
+      
+      // Incrementar índice para el próximo mensaje
+      indiceMensaje++;
     }
-    messageContainer.scrollTop = messageContainer.scrollHeight;
   }
   
   function mostrarEvento(evento) {
@@ -384,9 +358,82 @@ moverContador(activosActual, 'typing-count');
     setTimeout(() => { if (eventsContainer.children[0]) eventsContainer.innerHTML = ''; }, 5000);
   }
   
+  // === CONTADORES DINÁMICOS ===
+  function moverContador(valorActual, elementoId) {
+    const variacion = Math.floor(Math.random() * 80) - 40;
+    valorActual += variacion;
+    
+    if (valorActual < 60) valorActual = 60;
+    if (valorActual > 1200) valorActual = 1200;
+    
+    document.getElementById(elementoId).innerText = formatearNumero(valorActual);
+    
+    setTimeout(() => {
+      if (elementoId === 'connected-count') {
+        conectadosActual = moverContador(valorActual, elementoId);
+      } 
+      else if (elementoId === 'live-likes') {
+        likesActual = moverContador(valorActual, elementoId);
+      } 
+      else if (elementoId === 'typing-count') {
+        activosActual = moverContador(valorActual, elementoId);
+      }
+    }, 2000 + Math.random() * 4000);
+    
+    return valorActual;
+  }
+  
+  // === INICIALIZACIÓN ===
+  
+  // Carga inicial del TXT
+  actualizarListaMensajes().then(() => {
+    // Mostrar los últimos 5 mensajes al inicio
+    const inicio = Math.max(0, mensajesChat.length - 5);
+    for (let i = inicio; i < mensajesChat.length; i++) {
+      if (mensajesChat[i]) {
+        const platform = platforms[Math.floor(Math.random() * platforms.length)];
+        messageContainer.insertAdjacentHTML('beforeend', 
+          '<div class="chat-card ' + platform + '">' +
+          '<div style="width:28px;height:28px;border-radius:4px;background:' + platformColors[platform] + ';display:flex;align-items:center;justify-content:center;font-size:16px;">' + platformCode[platform] + '</div>' +
+          '<div style="flex:1;"><span style="font-weight:800;">' + mensajesChat[i].user + '</span> <span style="color:rgba(255,255,255,0.8);">' + mensajesChat[i].texto + '</span></div>' +
+          '</div>'
+        );
+      }
+    }
+    // Establecer el índice para continuar desde el siguiente mensaje
+    indiceMensaje = mensajesChat.length;
+  });
+  
+  // Intervalo para mostrar mensajes CADA 4 SEGUNDOS (flujo constante)
+  setInterval(() => {
+    mostrarSiguienteMensaje();
+  }, 4000);
+  
+  // Intervalo para recargar el TXT CADA MINUTO (detectar nuevos mensajes)
+  setInterval(() => {
+    actualizarListaMensajes();
+  }, 60000);
+  
+  // Emojis flotantes (cada 4 segundos)
+  setInterval(() => {
+    if (Math.random() > 0.6 && emojis.length > 0) {
+      const e = document.createElement('div');
+      e.className = 'floating-emoji';
+      e.innerText = emojis[Math.floor(Math.random() * emojis.length)];
+      e.style.left = Math.random() * 80 + 10 + '%';
+      e.style.bottom = '20px';
+      document.body.appendChild(e);
+      setTimeout(() => e.remove(), 3000);
+    }
+  }, 4000);
+  
+  // Iniciar contadores dinámicos
+  moverContador(conectadosActual, 'connected-count');
+  moverContador(likesActual, 'live-likes');
+  moverContador(activosActual, 'typing-count');
+  
 })();
 </script>
 
 </body>
 </html>
-
